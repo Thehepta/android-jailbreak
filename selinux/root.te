@@ -1,0 +1,11 @@
+allow kernel fwmarkd_socket sock_file  { write }
+allow kernel netd unix_stream_socket  { connectto }
+allow kernel kernel tcp_socket  { read }
+allow kernel toolbox_exec file  { getattr execute read open execute_no_trans }
+allow kernel devpts chr_file  { ioctl write read }
+allow kernel shell_data_file dir  { getattr search }
+allow kernel vendor_file dir  { read open }
+allow kernel vendor_toolbox_exec file  { getattr execute }
+allow kernel adbd fd  { use }
+allow kernel shell process  { sigchld }
+allow kernel shell_exec file  { getattr }

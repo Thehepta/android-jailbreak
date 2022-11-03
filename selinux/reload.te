@@ -1,0 +1,33 @@
+
+
+type=1400 audit(0.0:1899): avc: denied { write } for name="fwmarkd" dev="tmpfs" ino=17348 scontext=u:r:kernel:s0 tcontext=u:object_r:fwmarkd_socket:s0 tclass=sock_file permissive=1
+
+allow kernel fwmarkd_socket sock_file  { write }
+
+type=1400 audit(0.0:1900): avc: denied { connectto } for path="/dev/socket/fwmarkd" scontext=u:r:kernel:s0 tcontext=u:r:netd:s0 tclass=unix_stream_socket permissive=1
+
+allow kernel netd unix_stream_socket  { connectto }
+
+type=1400 audit(0.0:1903): avc: denied { read } for path="socket:[193022]" dev="sockfs" ino=193022 scontext=u:r:kernel:s0 tcontext=u:r:kernel:s0 tclass=tcp_socket permissive=1
+
+allow kernel kernel tcp_socket  { read }
+
+type=1400 audit(0.0:1910): avc: denied { getattr } for path="/system/bin/toybox" dev="dm-0" ino=518 scontext=u:r:kernel:s0 tcontext=u:object_r:toolbox_exec:s0 tclass=file permissive=1
+
+allow kernel toolbox_exec file  { getattr }
+
+type=1400 audit(0.0:1911): avc: denied { execute } for name="toybox" dev="dm-0" ino=518 scontext=u:r:kernel:s0 tcontext=u:object_r:toolbox_exec:s0 tclass=file permissive=1
+
+allow kernel toolbox_exec file  { execute }
+
+type=1400 audit(0.0:1912): avc: denied { read open } for path="/system/bin/toybox" dev="dm-0" ino=518 scontext=u:r:kernel:s0 tcontext=u:object_r:toolbox_exec:s0 tclass=file permissive=1
+
+allow kernel toolbox_exec file  { read open }
+
+type=1400 audit(0.0:1914): avc: denied { ioctl } for path="/dev/pts/4" dev="devpts" ino=7 ioctlcmd=5401 scontext=u:r:kernel:s0 tcontext=u:object_r:devpts:s0 tclass=chr_file permissive=1
+
+allow kernel devpts chr_file  { ioctl }
+
+type=1400 audit(0.0:1915): avc: denied { getattr } for path="/data/local/tmp" dev="sda45" ino=1130498 scontext=u:r:kernel:s0 tcontext=u:object_r:shell_data_file:s0 tclass=dir permissive=1
+
+allow kernel shell_data_file dir  { getattr }
