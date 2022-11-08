@@ -13,6 +13,9 @@
 #include <cstring>
 #include <termios.h>
 
-int client_main();
+using namespace std;
+
+
+int client_main(int argc,char *argv[]);
 
 #endif //SUPERSU_CLIENT_H

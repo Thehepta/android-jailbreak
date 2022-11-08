@@ -51,6 +51,10 @@ static int daemon_accept(int fd) {
     std::string env_pwd = "PWD=";
     env_pwd = env_pwd + read_string(fd);
     printf("remote pwd: %s \n", env_pwd.c_str());
+    std::string arg ;
+    arg = arg + read_string(fd);
+    printf("arg: %s  argc: %d\n", arg.c_str(),arg.size());
+
 
     write_int(fd, 1);
 
@@ -77,9 +81,20 @@ static int daemon_accept(int fd) {
     if (-1 == dup2(ptsfd, STDIN_FILENO)) {
         ERR_EXIT("dup2 child infd");
     }
+    char* argument_list[4];
 
+    if(arg.size() > 0){
+        argument_list[0]="bash";
+        argument_list[1]="-c";
+        argument_list[2]=(char *)arg.c_str();
+        argument_list[3]= NULL;
+
+    } else{
+        argument_list[0]="bash";
+        argument_list[1]= NULL;
+    }
     putenv((char*)env_pwd.c_str());  //设置环境变量 //我这里目前只设置了PWD 环境变量，shell会自动切换到这个目录
-    execlp(bin_exec,sh_exec, nullptr);
+    execvp("bash", argument_list);
     fprintf(stderr, "Cannot execute %s: %s\n", bin_exec, strerror(errno));
     free(pts_slave);
 }

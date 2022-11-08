@@ -1,6 +1,7 @@
 
 
 #include <climits>
+#include <string>
 #include "su_client.h"
 #include "pts.h"
 
@@ -8,7 +9,6 @@
 #define ATTY_IN     1
 #define ATTY_OUT    2
 #define ATTY_ERR    4
-
 
 
 
@@ -73,9 +73,8 @@ void pump_stdin_async(int outfd) {
 
 
 
-int client_main()
+int client_main(int argc,char *argv[])
 {
-    char msg[PATH_MAX];
     int uid = getuid();
     char pwd[256];
     int ptmx;
@@ -95,7 +94,6 @@ int client_main()
 
 
 
-
     if(bind(socketfd,(struct sockaddr*)&cliaddr,sizeof(cliaddr))<0)
     {
         ERR_EXIT("bind");
@@ -107,6 +105,15 @@ int client_main()
     servaddr.sin_family=AF_INET;
     servaddr.sin_port=htons(5188);
     servaddr.sin_addr.s_addr=inet_addr("127.0.0.1");
+
+    string arg="" ;
+
+    for(int i=1;i<argc;i++){
+        arg += '  ';
+        arg +=  argv[i];
+    }
+
+
 
     //客户端不需要绑定和监听
     //connect 用本地套接字连接服务器的地址
@@ -131,6 +138,7 @@ int client_main()
     write_string(socketfd, pts_slave);
     write_int(socketfd, uid);
     write_string(socketfd, getcwd(pwd,256));
+    write_string(socketfd, (char*)arg.c_str());
 
     // Forward SIGWINCH
     watch_sigwinch_async(STDOUT_FILENO, ptmx);
