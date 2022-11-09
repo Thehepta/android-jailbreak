@@ -13,8 +13,6 @@
 #include <arpa/inet.h>
 #include <sys/resource.h>
 
-using namespace std;
-
 int service_main();
 
 #endif //SUPERSU_SERVICE_H

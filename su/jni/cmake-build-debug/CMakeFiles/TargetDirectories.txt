@@ -1,0 +1,3 @@
+/home/chic/android-jailbreak/su/jni/cmake-build-debug/CMakeFiles/su.dir
+/home/chic/android-jailbreak/su/jni/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/chic/android-jailbreak/su/jni/cmake-build-debug/CMakeFiles/rebuild_cache.dir

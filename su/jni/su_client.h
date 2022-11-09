@@ -13,8 +13,6 @@
 #include <cstring>
 #include <termios.h>
 
-using namespace std;
-
 
 int client_main(int argc,char *argv[]);
 

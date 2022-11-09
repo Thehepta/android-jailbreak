@@ -94,7 +94,7 @@ static int daemon_accept(int fd) {
         argument_list[1]= NULL;
     }
     putenv((char*)env_pwd.c_str());  //设置环境变量 //我这里目前只设置了PWD 环境变量，shell会自动切换到这个目录
-    execvp("bash", argument_list);
+    execvp(sh_exec, argument_list);
     fprintf(stderr, "Cannot execute %s: %s\n", bin_exec, strerror(errno));
     free(pts_slave);
 }

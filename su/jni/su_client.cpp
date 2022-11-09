@@ -106,7 +106,7 @@ int client_main(int argc,char *argv[])
     servaddr.sin_port=htons(5188);
     servaddr.sin_addr.s_addr=inet_addr("127.0.0.1");
 
-    string arg="" ;
+    std::string arg="" ;
 
     for(int i=1;i<argc;i++){
         arg += '  ';
