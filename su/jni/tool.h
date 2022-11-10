@@ -17,6 +17,11 @@
 #include <asm-generic/ioctls.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <sys/un.h>
+
+#define REQUESTOR_SOCKET  "d63138f231"
+
+
 #define ERR_EXIT(m)         \
     do                      \
     {                       \
@@ -25,7 +30,6 @@
     } while (0);
 
 volatile static int closing_time = 0;
-
 
 
 static int read_int(int fd) {

@@ -81,35 +81,21 @@ int client_main(int argc,char *argv[])
     char pts_slave[PATH_MAX];
     //socket
     int socketfd;
-    if((socketfd=socket(PF_INET,SOCK_STREAM,IPPROTO_TCP))<0)
+    if((socketfd=socket(AF_UNIX,SOCK_STREAM | SOCK_CLOEXEC, 0))<0)
     {
         ERR_EXIT("socket");
     }
+    struct sockaddr_un cliaddr;
 
-    struct sockaddr_in cliaddr;
     memset(&cliaddr, 0, sizeof(cliaddr));
-    cliaddr.sin_family = AF_INET;
-    cliaddr.sin_port = htons(0);
-    cliaddr.sin_addr.s_addr = htonl(INADDR_ANY); //htonl可以省略，因为INADDR_ANY是全0的
-
-
-
-    if(bind(socketfd,(struct sockaddr*)&cliaddr,sizeof(cliaddr))<0)
-    {
-        ERR_EXIT("bind");
-    }
-
-    //指定服务器的地址结构
-    struct sockaddr_in servaddr;
-    memset(&servaddr,0,sizeof(servaddr));
-    servaddr.sin_family=AF_INET;
-    servaddr.sin_port=htons(5188);
-    servaddr.sin_addr.s_addr=inet_addr("127.0.0.1");
+    cliaddr.sun_family=AF_UNIX;
+    strcpy(cliaddr.sun_path+1,REQUESTOR_SOCKET);
+    cliaddr.sun_path[0]='\0';
 
 
     //客户端不需要绑定和监听
     //connect 用本地套接字连接服务器的地址
-    if(connect(socketfd,(struct sockaddr*)&servaddr,sizeof(servaddr))<0)
+    if(connect(socketfd,(struct sockaddr*)&cliaddr,sizeof(cliaddr))<0)
         ERR_EXIT("connect");
 
     int atty = 0;

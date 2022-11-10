@@ -183,29 +183,17 @@ int service_main(void)
     int listenfd;
 
     //listenfd=socket(PF_INET,SOCK_STREAM,0);
-    if((listenfd=socket(PF_INET,SOCK_STREAM,IPPROTO_TCP))<0)
+    if((listenfd=socket(AF_LOCAL,SOCK_STREAM | SOCK_CLOEXEC,0))<0)
     {
         ERR_EXIT("socket");
     }
 
     //填充地址结构
-    struct sockaddr_in servaddr;
-    memset(&servaddr,0,sizeof(servaddr));
-    servaddr.sin_family=AF_INET;
-    servaddr.sin_port=htons(5188);
-    servaddr.sin_addr.s_addr=htonl(INADDR_ANY); //htonl可以省略，因为INADDR_ANY是全0的
-    //servaddr.sin_addr.s_addr=inet_addr("127.0.0.1");
-    //inet_aton("127.0.0.1",&servaddr.sin_addr);
-
-
-
-
-    //地址复用
-    int on=1;
-    if(setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on))<0)
-    {
-        ERR_EXIT("setsocketopt");
-    }
+    struct sockaddr_un servaddr;
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sun_family=AF_UNIX;
+    strcpy(servaddr.sun_path+1,REQUESTOR_SOCKET);
+    servaddr.sun_path[0]='\0';
 
     //bind 绑定listenfd和本地地址结构
     if(bind(listenfd,(struct sockaddr*)&servaddr,sizeof(servaddr))<0)
@@ -219,26 +207,19 @@ int service_main(void)
     }
 
 
-    // 调用listen函数后，就成了被动套接字，否则是主动套接字
-    // 主动套接字：发送连接(connect)
-    // 被动套接字：接收连接(accept)
-    //对方的地址
-    struct sockaddr_in peeraddr;
-    socklen_t peerlen=sizeof(peeraddr);
-    int conn;   //已连接套接字(主动)
+    int client;   //已连接套接字(主动)
     printf("pid %d",getpid());
-    while ((conn = accept(listenfd, (struct sockaddr*)&peeraddr,&peerlen)) > 0) {
-        printf("client: ip=%s | port=%d\n",inet_ntoa(peeraddr.sin_addr),ntohs(peeraddr.sin_port));
+    while ((client = accept(listenfd, NULL,NULL)) > 0) {
         if (fork_zero_fucks() == 0) {
             close(listenfd);
-            return daemon_accept(conn);
+            return daemon_accept(client);
         }
         else {
-            close(conn);
+            close(client);
         }
     }
     //关闭套接口
-    close(conn);
+    close(client);
     close(listenfd);
     return 0;
 }
