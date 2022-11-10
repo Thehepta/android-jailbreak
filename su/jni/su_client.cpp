@@ -106,14 +106,6 @@ int client_main(int argc,char *argv[])
     servaddr.sin_port=htons(5188);
     servaddr.sin_addr.s_addr=inet_addr("127.0.0.1");
 
-    std::string arg="" ;
-
-    for(int i=1;i<argc;i++){
-        arg += '  ';
-        arg +=  argv[i];
-    }
-
-
 
     //客户端不需要绑定和监听
     //connect 用本地套接字连接服务器的地址
@@ -121,27 +113,63 @@ int client_main(int argc,char *argv[])
         ERR_EXIT("connect");
 
     int atty = 0;
-    if (isatty(STDIN_FILENO))  atty |= ATTY_IN;
+    if (isatty(STDIN_FILENO))atty |= ATTY_IN;
     if (isatty(STDOUT_FILENO)) atty |= ATTY_OUT;
     if (isatty(STDERR_FILENO)) atty |= ATTY_ERR;
 
+
     if (atty) {
-        // We need a PTY. Get one.
+        // We need a PTY. Get one. 终端运行
+        printf("pts_open");
         ptmx = pts_open(pts_slave, sizeof(pts_slave));
         if (ptmx < 0) {
             ERR_EXIT("pts_open");
         }
     } else {
-        ERR_EXIT("atty is null");
+        // 不是通过终端调用，没有tty
+        pts_slave[0] = '\0';
     }
+
+
     write_int(socketfd, getpid());
-    write_string(socketfd, pts_slave);
     write_int(socketfd, uid);
     write_string(socketfd, getcwd(pwd,256));
-    write_string(socketfd, (char*)arg.c_str());
+    write_int(socketfd, argc-1);
+    for(int i=1;i<argc;i++){
+        write_string(socketfd, argv[i]);
+    }
 
-    // Forward SIGWINCH
-    watch_sigwinch_async(STDOUT_FILENO, ptmx);
+
+    write_string(socketfd, pts_slave);
+
+    // Send stdin
+    if (atty & ATTY_IN) {
+        // Using PTY
+        send_fd(socketfd, -1);
+    } else {
+        send_fd(socketfd, STDIN_FILENO);
+    }
+
+    // Send stdout
+    if (atty & ATTY_OUT) {
+        // Forward SIGWINCH
+        watch_sigwinch_async(STDOUT_FILENO, ptmx);
+
+        // Using PTY
+        send_fd(socketfd, -1);
+    } else {
+        send_fd(socketfd, STDOUT_FILENO);
+    }
+
+
+    // Send stderr
+    if (atty & ATTY_ERR) {
+        // Using PTY
+        send_fd(socketfd, -1);
+    } else {
+        send_fd(socketfd, STDERR_FILENO);
+    }
+
 
     // Wait for acknowledgement from daemon
     read_int(socketfd);
@@ -156,7 +184,9 @@ int client_main(int argc,char *argv[])
         pump_stdout_blocking(ptmx);
     }
     //关闭套接字
+    int code = read_int(socketfd);
     close(socketfd);
+    printf("client exited %d", code);
 
     return 0;
 }

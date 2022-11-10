@@ -44,19 +44,68 @@ static int daemon_accept(int fd) {
     printf("daemon_accept pid %d \n",getpid());
     int pid = read_int(fd);
     printf("remote pid: %d \n", pid);
-    char *pts_slave = read_string(fd);
-    printf("remote pts_slave: %s \n", pts_slave);
     daemon_from_uid = read_int(fd);
     printf("remote uid: %d \n", daemon_from_uid);
     std::string env_pwd = "PWD=";
     env_pwd = env_pwd + read_string(fd);
     printf("remote pwd: %s \n", env_pwd.c_str());
+    int argc = read_int(fd);
+    printf("remote argc: %d \n", argc);
     std::string arg ;
-    arg = arg + read_string(fd);
+    for(int i=0;i<argc;i++){
+        char * remote_args =  read_string(fd);
+        arg = arg +" "+ remote_args;
+        printf("arg: %s \n", remote_args);
+    }
     printf("arg: %s  argc: %d\n", arg.c_str(),arg.size());
 
 
+    char *pts_slave = read_string(fd);
+    printf("remote pts_slave: %s \n", pts_slave);
+
+
+    int infd  = recv_fd(fd);
+    int outfd = recv_fd(fd);
+    int errfd = recv_fd(fd);
+
+
+    // acknowledgement  to  daemon
     write_int(fd, 1);
+
+
+    int child = fork();
+    if (child < 0) {
+        // fork failed, send a return code and bail out
+        perror( "unable to fork");
+        write(fd, &child, sizeof(int));
+        close(fd);
+        return child;
+    }
+
+    if (child != 0) {
+        int status, code;
+
+        free(pts_slave);
+
+        printf("waiting for child exit");
+        if (waitpid(child, &status, 0) > 0) {
+            code = WEXITSTATUS(status);
+        }
+        else {
+            code = -1;
+        }
+
+        // Pass the return code back to the client
+        printf("sending code");
+        if (write(fd, &code, sizeof(int)) != sizeof(int)) {
+            printf("unable to write exit code");
+        }
+
+        close(fd);
+        printf("child exited");
+        return code;
+    }
+    close (fd);
 
     //分离终端，将当前进程设置成当前进程组的控制终端，终端是以进程组为单位的
     if (setsid() == (pid_t) -1) {
@@ -66,21 +115,47 @@ static int daemon_accept(int fd) {
     // fork() and setsid() so that it becomes
     // our controlling TTY and not the daemon's
     int ptsfd = 0;
-    ptsfd = open(pts_slave, O_RDWR);
-    if (ptsfd == -1) {
-        ERR_EXIT("open(pts_slave) daemon");
-    }
 
+    if (pts_slave[0]) {
+        printf("open TIOCSCTTY");
+        ptsfd = open(pts_slave, O_RDWR);
+        if (ptsfd == -1) {
+            ERR_EXIT("open(pts_slave) daemon");
+        }
+        if (infd < 0)  {
+            printf("daemon: stdin using PTY");
+            infd  = ptsfd;
+        }
+        if (outfd < 0) {
+            printf("daemon: stdout using PTY");
+            outfd = ptsfd;
+        }
+        if (errfd < 0) {
+            printf("daemon: stderr using PTY");
+            errfd = ptsfd;
+        }
+    }else{
+        //调用对象不是终端设备
+        printf("ioctl TIOCSCTTY su service\n");
+        if (isatty(infd)) {
+            ioctl(infd, TIOCSCTTY, 1);
+        }
+    }
+    free(pts_slave);
     //所有的输入输出都重定向到 /dev/pts
-    if (-1 == dup2(ptsfd, STDOUT_FILENO)) {
+    if (-1 == dup2(outfd, STDOUT_FILENO)) {
         ERR_EXIT("dup2 child outfd");
     }
-    if (-1 == dup2(ptsfd, STDERR_FILENO)) {
+    if (-1 == dup2(infd, STDERR_FILENO)) {
         ERR_EXIT("dup2 child errfd");
     }
-    if (-1 == dup2(ptsfd, STDIN_FILENO)) {
+    if (-1 == dup2(errfd, STDIN_FILENO)) {
         ERR_EXIT("dup2 child infd");
     }
+
+    close(infd);
+    close(outfd);
+    close(errfd);
     char* argument_list[4];
 
     if(arg.size() > 0){

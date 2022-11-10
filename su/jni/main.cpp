@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <string.h>
 #include "su_service.h"
 #include "su_client.h"
@@ -11,7 +9,7 @@ int main(int argc, char *argv[]) {
         return service_main();
     }
 
-    return client_main(argc, argv);
 
+    return client_main(argc, argv);
 
 }
