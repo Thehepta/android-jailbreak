@@ -2,6 +2,7 @@
 
 #include <climits>
 #include <string>
+#include <sys/wait.h>
 #include "su_client.h"
 #include "pts.h"
 
@@ -69,21 +70,48 @@ void pump_stdin_async(int outfd) {
     pump_async(STDIN_FILENO, outfd);
 }
 
+static void fork_for_samsung(void)
+{
+    // Samsung CONFIG_SEC_RESTRICT_SETUID wants the parent process to have
+    // EUID 0, or else our setresuid() calls will be denied.  So make sure
+    // all such syscalls are executed by a child process.
+    int rv;
 
+    switch (fork()) {
+        case 0:
+            return;
+        case -1:
+            ERR_EXIT("fork failed\n");
+        default:
+            if (wait(&rv) < 0) {
+                exit(1);
+            } else {
+                exit(WEXITSTATUS(rv));
+            }
+    }
+}
 
 
 
 int client_main(int argc,char *argv[])
 {
+
+//    fork_for_samsung();  //可以不用，也可以写这个进程接受client进程退出状态
+
+
     int uid = getuid();
     char pwd[256];
     int ptmx;
     char pts_slave[PATH_MAX];
     //socket
-    int socketfd;
-    if((socketfd=socket(AF_UNIX,SOCK_STREAM | SOCK_CLOEXEC, 0))<0)
-    {
+    int socketfd = socket(AF_LOCAL, SOCK_STREAM, 0);
+    if (socketfd < 0) {
         ERR_EXIT("socket");
+        exit(-1);
+    }
+    if (fcntl(socketfd, F_SETFD, FD_CLOEXEC)) {
+        ERR_EXIT("fcntl FD_CLOEXEC");
+        exit(-1);
     }
     struct sockaddr_un cliaddr;
 
@@ -106,15 +134,16 @@ int client_main(int argc,char *argv[])
 
     if (atty) {
         // We need a PTY. Get one. 终端运行
-        printf("pts_open");
         ptmx = pts_open(pts_slave, sizeof(pts_slave));
         if (ptmx < 0) {
-            ERR_EXIT("pts_open");
+            ERR_EXIT("pts_open failed\n");
         }
     } else {
         // 不是通过终端调用，没有tty
         pts_slave[0] = '\0';
     }
+
+    //开始进程通讯
 
 
     write_int(socketfd, getpid());
@@ -169,10 +198,14 @@ int client_main(int argc,char *argv[])
     if (atty & ATTY_OUT) {
         pump_stdout_blocking(ptmx);
     }
-    //关闭套接字
+    //阻塞防止进程退出，这样通道可以一直进行通讯，
+    //当对面执行进程退出的时候，对面
     int code = read_int(socketfd);
     close(socketfd);
-    printf("client exited %d", code);
+    printf("client exited %d\n", code);
 
     return 0;
 }
+
+
+

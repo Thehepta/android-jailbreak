@@ -31,7 +31,7 @@ static void cleanup_signal(int sig) {
     exit(128 + sig);
 }
 
-static int daemon_accept(int fd) {
+static int daemon_accept_handlr(int clientfd) {
 
 #ifdef  __ANDROID__
     char *bin_exec = "/system/bin/sh";
@@ -40,54 +40,51 @@ static int daemon_accept(int fd) {
     char *bin_exec = "/bin/bash";
     char *sh_exec = "bash";
 #endif
-    signal(SIGCHLD, SIG_IGN); // 忽略子进程结束信号，防止出现僵尸进程
-    printf("daemon_accept pid %d \n",getpid());
-    int pid = read_int(fd);
+        signal(SIGCHLD, SIG_IGN); // 忽略子进程结束信号，防止出现僵尸进程
+    int pid = read_int(clientfd);
     printf("remote pid: %d \n", pid);
-    daemon_from_uid = read_int(fd);
+    daemon_from_uid = read_int(clientfd);
     printf("remote uid: %d \n", daemon_from_uid);
     std::string env_pwd = "PWD=";
-    env_pwd = env_pwd + read_string(fd);
+    env_pwd = env_pwd + read_string(clientfd);
     printf("remote pwd: %s \n", env_pwd.c_str());
-    int argc = read_int(fd);
+    int argc = read_int(clientfd);
     printf("remote argc: %d \n", argc);
     std::string arg ;
     for(int i=0;i<argc;i++){
-        char * remote_args =  read_string(fd);
+        char * remote_args =  read_string(clientfd);
         arg = arg +" "+ remote_args;
-        printf("arg: %s \n", remote_args);
+        printf("remote arg: %s \n", remote_args);
     }
-    printf("arg: %s  argc: %d\n", arg.c_str(),arg.size());
-
-
-    char *pts_slave = read_string(fd);
+    char *pts_slave = read_string(clientfd);
     printf("remote pts_slave: %s \n", pts_slave);
 
 
-    int infd  = recv_fd(fd);
-    int outfd = recv_fd(fd);
-    int errfd = recv_fd(fd);
+    int infd  = recv_fd(clientfd);
+    int outfd = recv_fd(clientfd);
+    int errfd = recv_fd(clientfd);
 
 
     // acknowledgement  to  daemon
-    write_int(fd, 1);
-
+    write_int(clientfd, 1);
 
     int child = fork();
     if (child < 0) {
         // fork failed, send a return code and bail out
         perror( "unable to fork");
-        write(fd, &child, sizeof(int));
-        close(fd);
+        write(clientfd, &child, sizeof(int));
+        close(clientfd);
         return child;
     }
 
     if (child != 0) {
+        //为什么要fork一个子进程
+        //子进程是真是执行shell，输入输出的进程，而这个父进程，等待这个子进程退出，或者返回结果
         int status, code;
-
         free(pts_slave);
-
-        printf("waiting for child exit");
+        printf("waiting for child exit\n");
+        printf("current parent pid = %d\n",getpid());
+        printf("current chiled pid = %d\n",child);
         if (waitpid(child, &status, 0) > 0) {
             code = WEXITSTATUS(status);
         }
@@ -96,16 +93,16 @@ static int daemon_accept(int fd) {
         }
 
         // Pass the return code back to the client
-        printf("sending code");
-        if (write(fd, &code, sizeof(int)) != sizeof(int)) {
+        printf("sending code\n");
+        if (write(clientfd, &code, sizeof(int)) != sizeof(int)) {
             printf("unable to write exit code");
         }
 
-        close(fd);
-        printf("child exited");
+        close(clientfd);
+        printf("child exited\n");
         return code;
     }
-    close (fd);
+    close (clientfd);
 
     //分离终端，将当前进程设置成当前进程组的控制终端，终端是以进程组为单位的
     if (setsid() == (pid_t) -1) {
@@ -136,7 +133,7 @@ static int daemon_accept(int fd) {
         }
     }else{
         //调用对象不是终端设备
-        printf("ioctl TIOCSCTTY su service\n");
+        printf("not tty ,ioctl TIOCSCTTY su service\n");
         if (isatty(infd)) {
             ioctl(infd, TIOCSCTTY, 1);
         }
@@ -146,10 +143,10 @@ static int daemon_accept(int fd) {
     if (-1 == dup2(outfd, STDOUT_FILENO)) {
         ERR_EXIT("dup2 child outfd");
     }
-    if (-1 == dup2(infd, STDERR_FILENO)) {
+    if (-1 == dup2(errfd, STDERR_FILENO)) {
         ERR_EXIT("dup2 child errfd");
     }
-    if (-1 == dup2(errfd, STDIN_FILENO)) {
+    if (-1 == dup2(infd, STDIN_FILENO)) {
         ERR_EXIT("dup2 child infd");
     }
 
@@ -159,18 +156,18 @@ static int daemon_accept(int fd) {
     char* argument_list[4];
 
     if(arg.size() > 0){
-        argument_list[0]="bash";
+        argument_list[0]= sh_exec;
         argument_list[1]="-c";
         argument_list[2]=(char *)arg.c_str();
         argument_list[3]= NULL;
 
     } else{
-        argument_list[0]="bash";
+        argument_list[0]= sh_exec;
         argument_list[1]= NULL;
     }
     putenv((char*)env_pwd.c_str());  //设置环境变量 //我这里目前只设置了PWD 环境变量，shell会自动切换到这个目录
-    execvp(sh_exec, argument_list);
-    fprintf(stderr, "Cannot execute %s: %s\n", bin_exec, strerror(errno));
+    execvp(bin_exec, argument_list);
+    printf( "Cannot execute %s: %s\n", bin_exec, strerror(errno));
     free(pts_slave);
 }
 
@@ -183,15 +180,19 @@ int service_main(void)
     int listenfd;
 
     //listenfd=socket(PF_INET,SOCK_STREAM,0);
-    if((listenfd=socket(AF_LOCAL,SOCK_STREAM | SOCK_CLOEXEC,0))<0)
+    if((listenfd=socket(AF_LOCAL,SOCK_STREAM,0))<0)
     {
         ERR_EXIT("socket");
+    }
+
+    if (fcntl(listenfd, F_SETFD, FD_CLOEXEC)) {
+        ERR_EXIT("fcntl FD_CLOEXEC");
     }
 
     //填充地址结构
     struct sockaddr_un servaddr;
     memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sun_family=AF_UNIX;
+    servaddr.sun_family=AF_LOCAL;
     strcpy(servaddr.sun_path+1,REQUESTOR_SOCKET);
     servaddr.sun_path[0]='\0';
 
@@ -208,11 +209,11 @@ int service_main(void)
 
 
     int client;   //已连接套接字(主动)
-    printf("pid %d",getpid());
+    printf("curren pid %d\n",getpid());
     while ((client = accept(listenfd, NULL,NULL)) > 0) {
         if (fork_zero_fucks() == 0) {
             close(listenfd);
-            return daemon_accept(client);
+            return daemon_accept_handlr(client);
         }
         else {
             close(client);
