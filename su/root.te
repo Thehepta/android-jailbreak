@@ -1,0 +1,6 @@
+allow kernel * *  *
+allow shell kernel unix_stream_socket  *
+allow shell devpts chr_file  *
+allow untrusted_app shell_data_file file  *
+allow untrusted_app kernel unix_stream_socket  *
+

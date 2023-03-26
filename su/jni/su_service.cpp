@@ -2,7 +2,6 @@
 
 
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <string>
 #include "su_service.h"
 #include "pts.h"

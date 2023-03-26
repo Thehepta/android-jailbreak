@@ -10,3 +10,5 @@ ndk-build
 如果有问题，可以试试
 
 ndk-build NDK_PROJECT_PATH=.
+
+

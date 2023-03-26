@@ -13,7 +13,7 @@ allow kernel kernel capability  { dac_override dac_read_search }
 allow kernel rs_exec file  { execute getattr }
 allow kernel rs_exec file  { execute getattr }
 allow shell kernel unix_stream_socket  *
-allow kernel shell_exec file  *
+allow kernel shell_exec file  * 
 allow shell devpts chr_file  *
 allow untrusted_app shell_data_file file  *
 allow untrusted_app kernel unix_stream_socket  *
@@ -25,13 +25,20 @@ allow kernel init dir  *
 allow kernel vendor_init dir  *
 allow kernel ueventd dir  *
 allow kernel logd dir  *
+allow kernel logd file  *
 allow kernel servicemanager dir  *
+allow kernel servicemanager file  *
 allow kernel hwservicemanager dir  *
+allow kernel hwservicemanager file  *
 allow kernel vndservicemanager dir  *
+allow kernel vndservicemanager file  *
+allow kernel tee dir  *
+allow kernel tee file  *
+allow kernel vold dir  *
+allow kernel vold file  *
 allow kernel app_data_file dir  *
 allow kernel system_data_file lnk_file  *
-allow kernel system_data_file dir  *
 allow kernel app_data_file file  *
+allow kernel system_file file  *
 allow kernel ueventd file  *
-allow kernel proc_irq dir  *
-allow system_app vendor_default_prop file  *
+allow kernel * *  *
