@@ -1,39 +1,264 @@
-# Android-Jailbreak
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+# 前言
+感谢r0ysue,送了我手机，白嫖的快感。
+上一篇发了如何写一个hook框架，但是还是依赖于root权限，而在android平台，magisk就是root的代名词。所以开始了。。。。。
 
-#### 软件架构
-软件架构说明
+# 越狱概论
 
 
-#### 安装教程
++ 软件安全的崛起
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+    软件安全所要解决的问题提是什么: 防攻击、防代码泄露。
 
-#### 使用说明
+    那么为什么会有软件安全的问题，因为软件运行平台不安全，而软件的载体是编译后的应用文件，不安全的平台导致了这些应用文件会被攻击者获得，因而产生了软件安全。
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+    所以软件安全的崛起，本质还是因为，运行平台端的不安全。
 
-#### 参与贡献
+    为什么运行平台端不安全那，pc而言，本身不提供也不担任应用保护的角色。而移动端，有一定程度的保护，甚至我觉得，开始他们是想做起来的，但是后续发现，基本不可能，为什么，正是因为越狱。
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+    目前软件保护做的最好的是ios，假如，ios手机系统无法越狱，你能拿到他的真正的编译程序吗？
+
+    加固混淆这些安全技术就是用来对抗静态分析的，符号执行、模拟执行、混合执行、动态运行，就是用来破解加固混淆的。
+
+    反调试、反反反调试，特征检测，可信任执行环境，就是用来对抗动态执行的。
 
 
-#### 特技
++ 越狱种类：
+    + 有根root：就是在使用越狱之后，root权限一直存在，随用随取，重启不消失
+    + 无根root：使用了越狱之后，获取了root权限，但是重启后会消失，重启后想要再使用root权限，需要再次使用越狱工具获取权限
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+
++ 越狱方式：
+    + 漏洞提权（系统级别）
+
+        这一种比较普遍和通用，不仅仅是移动设备，pc设备也通用。能够提权的漏洞一般都是比较严重的品相较好的漏洞，一年也没几个，但是一般都有，例如ios，号称安全性比andorid高，但是从开始到现在，一直有漏洞，虽然最新版本的漏洞还没有更新出来，但是迟早会有，andriod也是一样。漏洞可能还分为硬件和软件漏洞，这种就不细说了，主要还是看严重程度。大部分漏洞提权，都只能获得无根root,ios听说以前有一些有根的root,这种很少。
+
+    + 固件提权
+
+        + 普通固件提权
+
+        这种在理论上来说，是百分之百可能，但是利用的门槛比较高，要过很多的坑，开源的可能比闭源的好做，如果遇到闭源的，例如无法修改固件，不知道格式等等，android 由于是开源的，解锁的手机，可以直接通过magisk修改rom，然后刷进行，也可以寻找源码直接编译一个新的有root权限的固件刷进去，或者ios,目前研究不多，后续有时间了，这部分会补上。
+
+        但是这种通过固件提权的方式，有个问题，就是有可能会被反击，也就是厂家内置了一些固件验证，必须要过了这些验证，才能正常启动，否则是不允许启动的。这就需要修改更多固件的信息，对固件足够了解。
+        
+        + 板载驱动提权（可能写的不是很严谨）
+      
+        这个我开始没打算写的，只听过，没见过。但是参加mosec 看见大神亲手演示。
+        
+        首先，要知道，有很多设备，是不提供刷写功能的，比如向android这种刷写系统的功能，华为，小米这些手机，都是需要申请解锁的，对了还有sony，很多年前sony就有这个功能，而且是网络锁，如果没有解开网络锁，就无法刷写系统。改了固件刷不进去，也没用。但是，在系统固件之上，还有一层程序，用于刷写镜像，管理板子是否解锁，板载驱动啥的，soc这些，芯片程序，这一部分可能也是有漏洞的，而你可以运用这部分漏洞，攻击他的保护程序，从而打到可以刷写固件的目的。去年的mosec就演示了这个。芯片那些程序是开源的，通过分析找到了漏洞，然后进行攻击。我还听说过闭源程序，直接通过硬件手段，将程序搞下来，然后用ida进行分析，寻找漏洞，或者寻找算法解锁的。
+        
+    
++ 安全性：
+
+    越狱的人，基本已经很少考虑这个问题。
+
+    目前ios越狱用的就是无根越狱，而android用的是magisk，就是修改固件越狱。就安全性而言，一般来说，固件越狱是比漏洞越狱更加安全。
+    
+    漏洞越狱，预示这你的手机存在root提权漏洞，不仅你可以提权，任何一个第三方app,都有和你一样的提权机会，从而获取root权限。
+    
+    而固件提权，只有手机主人才拥有固件提权的机会，只要管控好嵌入的root管理程序，保证root权限不外泄，就能保证安全问题。
+
+
+
+## ios越狱 (研究中，后续会补上)
+    由于有些东西还并未全部弄懂，所以不敢乱写。
+## android越狱和防护
+ android的越狱，我们一般都是来说android系统的越狱。
+
++ 固件方面
+
+    目前普遍需要接bl锁，当然有的品牌目前已经禁止解锁了。
+
+    + 1、根文件系统可以读写年代，并且没有selinux
+        
+        权限管控，只有DAC,没有mac，也就是说，只要获取了root权限，就可以拥有一切，而且，根文件系统可读写，就可以修改文件系统，进行永久root
+        
+        当时，根本不需要内核漏洞，只需要应用漏洞，提权到root,修改rom，就可以永久提权了。
+        
+    + 2、开启固件rom，加入selinux
+
+        在这个时期，效果一般，selinux ，杜绝了应用层root权限泄露，但是rom固件的效果一般，当时的手机普遍能解锁，然后刷机，而且android当时自带一个recovery，配合当年很火的supersu，直接就能刷进去一个su权限，获取root。他的原理就是把根文件系统重新打包，再刷进去，覆盖以前的rom。
+
+    
+
+    + 3、固件验证(avb)、回滚保护、system as root、 ab分区(更新较快，没跟上)
+
+        固件验证，Android Verified Boot(这个没仔细查，研究的时候已经是2.0了)，多了一个vbmeta.img分区，用于校验 boot.img system.img vendor.img 这些分区，确保不被篡改(可以解锁，关闭)。
+
+        system as root，原来的就是将system.img变成根文件系统，原来都是boot.img里面的ramdisk 是根文件系统的
+
+        回滚保护，直接修改system.img镜像，无效，数据在启动的时候如果有vbmeta验证，会将数据修正。
+
+        ab分区，分区修改，反正就是将recovery 分区删掉了，要想使用twrp,没法刷写进recovery了，需要用fastboot 直接应道twrp镜像
+
++ 漏洞方面
+
+
+    + selinux
+
+        linux下有两种权限管控，传统的DAC（直接访问控制)，和MAC（强制访问控制）安全机制(selinx)。
+        关于selinux,我看了很多资料，很长时间没弄明白，所以在这里就我自己的理解详细写一下。
+
+        + MAC和DAC
+
+            + DAC
+
+                是以用户为主体，比如，就像现实世界中的人，你运动，你学习，你考大学，你装修，把自己的房子烧了，没人管你的，你的这些行为，就是进程，而你烧房子，花钱，等等，就是操作文件，房子就是文件，钱，就是文件，你怎么操作，没人管你，因为他们是属于你的，你是主体。
+
+            + MAC 
+
+                mac以进程为主体，文件，属性为客体，就像现实世界中，以事件为主体，物质为客体，这种情况下，假如你要烧你的房子，假如假如你要花你的钱，在DAC中是允许的，但是在mac中，会首先判断你的行为事件，比如你的行为事件是装修，是需要对房子进行操作的，但是你的操作确是烧房子，拆房子，就会被禁止，比如你要吃饭，是要花钱的，但是你的操作是花钱买法拉利了，这也是没有权限的。粒度为进程(有安全上下文标签)，管控行为，为读写，执行，等等，被执行者(文件)贴上标签，进程操作被文件的时候，通过进程和文件的标签判断，是否可以操作。
+
+        selinux,是在mac基础上进行的加强和扩展
+
+        + selinux 工作原理
+
+            + 在编译的时候，确定了大致的安全策略，尤其一些比较重要，权限高的文件。这些安全策略会将这些文件管理的死死的，不会给予他们任何多余的权限
+
+            + 全文件加标签，会将每一个文件都加上安全上下文的标签，彻彻底底的管控
+
+            + 主要工作点是内核模块，在内核各个操作点，添加钩子，当操作发生的时候，会首先通过安全策略进行判断。(只要钩子写的全，就不可能绕过去)
+
+    + selinux 对于漏洞的防御
+        
+        selinux能防御应用层的root权限漏洞，对于内核层的root权限漏洞，存在直接从内核关闭selinux的可能。但是如果无法关闭selinux，root权限将无法外泄，因为selinux权限的策略对于root用户、权限的非root用户访问默认是禁止的。
+        
+        对于selinux 而言，是不是root，没有任何区别，root这个概念是DAC所提供的的用户概念，而selinux是策略控制的，不会因为，你是root用户，就不对你进行策略管控
+        
+        root用户在DAC权限来说是有关闭selinux的权限的(android上，别的linux没搞过，不清楚)，但是如果selinux打开了，你就要拥有关闭selinux权限的MAC策略权限。
+        
+        内核漏洞如果无法直接从内核层面关闭selinux，那么即使获取了root，也是无法绕过selinux策略的，跟用户层的root提权漏洞会面临一样的结果。
+            
+
+
+### magisk和固件
+关于magisk，本来写了一些的，但是架不住大佬是在写的太好了，我就删除了。
+https://bbs.kanxue.com/thread-276361.htm#msg_header_h3_4
+
+# 越狱实践
+
+## 提权
+
+从上面的分析，我们知道了，越狱只有两种，漏洞越狱和固件。而这两种都是有很多成品的。固件越狱就是magisk，漏洞越狱，我们需要一个android的内核漏洞，品相要好，要能关闭selinux。
+
+漏洞：CVE-2019-2215。
+
+这个漏洞品相极好，而且分析的人不少，另外宣传一下，买手机可以找r0ysue，我用的是手机就是pixel
+
+https://bbs.kanxue.com/thread-264932.htm#msg_header_h1_9
+
+https://bbs.kanxue.com/thread-266198.htm
+
+提权之后，我们要做到无感知，还需要打开selinux,并让root权限泄露出来。
+
+
+
+## selinux 和 root权限泄露
+
++ root权限泄露
+
+    这个肯定是su程序，或者supersu，这个是有android成品的。
+
+    但是很遗憾不行，在关闭selinux后，su就断开了。因为selinux，的策略阻止root权限外泄。
+
+
++ 修改selinux策略
+
+    selinux测策略文件是在编译后产生的，也就是说文件不能更改，而启动的时候会加载这个策略文件。
+    有兴趣的可以看一下这个。
+
+    https://source.android.google.cn/docs/security/features/selinux?hl=zh-cn
+
+    但是有些大神就是这么牛逼，他们开发了一种selinux 注入工具
+
+    https://github.com/phhusson/sepolicy-inject
+
+    如果有幸能关闭selinxu,那么就可以使用这种工具修改selinux策略，而magisk 也是有这个工具叫supolicy，我使用的magisk的工具测试的。
+    
+    + supolicy工具操作：
+
+        selinux如果报错，后台会显示如下日志
+
+            avc: denied { execute } for name="12456" dev="tmpfs" ino=472904 scontext=u:r:untrusted_app:s0:c153,c256,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=file permissive=0
+
+        我们可以先根据上面的报错的信息，修改selinxu的规则，然后用supolicy加载进去。
+        加载字符串规则
+        ```
+            ./magiskpolicy  --live "allow untrusted_app shell_data_file file { execute execute_no_trans }"     
+
+        ```
+        加载文件
+        ```
+        supolicy --apply root.te --live
+        ```
+
+        我们根据selinux的报错信息，来一直不断的修改策略，直到成功为止。
+
+
+    + 修改selinux策略
+
+        修改了很多次策略，自己都麻了，但是总结起来，就三个阶段
+        + 1、adb 获取root权限
+
+            我们虽然在adb中运行漏洞获得了权限，但是我们想要把这个权限外泄给别的adb终端，在selinux打开的情况下，策略是关闭的，所以我一次一次的重启，一次一次的根据报错信息更新策略，最后通过了。
+        + 2、应用获取root权限
+
+            前面搞完了我以为可以过年了，回头应用用的时候才发现，不能使用，因为，selinux限制非系统应用获取root权限。对于这个策略，目前有两种方案绕过，第一种，就是接着改策略，第二种是magisk使用的，就是在root权限和获取的应用之间在套一层shell，先用shell获取root权限，然后在用应用和shell通讯，由这个持有root的shell,执行操作。这也是magisk su 和 supersu 他们两个程序在源代码上的差别。
+
+        + 3、梭哈
+
+            我照着supersu 和magisk 写了一个简洁的好读的su程序使用，但是我没用实现magisk间接调用的那一部分，所以在改第二个应用获取root权限的时候，改了一天，一直改策略，改到了怀疑人生，然后一条规则在我脑海中形成了
+            ```
+            allow kernel * *  *
+            ```
+            成品策略文件root.te
+            ```
+            allow shell kernel unix_stream_socket  *
+            allow shell devpts chr_file  *
+            allow untrusted_app shell_data_file file  *
+            allow untrusted_app kernel unix_stream_socket  *
+            ```
+            上面这个，直接把selinux 很多策略直接通过了，使用需谨慎。
+
+
+## mount --bind
+
+前面搞完了后，还有点问题，就是找不到可执行文件，因为rom是只读的，无法复制文件到系统可执行文件路径，所以应用无法找到，填绝对路径？又是否要修改策略那？
+
+所以上我们的神器mount --bind 他可以将两个目录合并到一起。但是又不改变文件。这么形容那，就像文件系统的hook。而magisk也是使用了这个。magisk 虽然代码体量不小，而且有很多对系统启动修改，已经挂载这些，但是我觉得如果没有mount --bind，代码体量将会更大，所解决的问题可能也会更多，更麻烦。
+
+在tmp2下有一个文件supersu
+
+```
+1|walleye:/data/local/tmp/tmp2 # ls
+supersu
+walleye:/data/local/tmp/tmp2 # 
+
+```
+不能复制过去，只读文件系统
+```
+walleye:/data/local/tmp/tmp2 # cp supersu /sbin/                                                                                                                                                                                                             
+cp: /sbin//supersu: Read-only file system
+1|walleye:/data/local/tmp/tmp2 # 
+```
+
+mount --bind 
+```
+1|walleye:/data/local/tmp # mount --bind tmp2 /     sbin                                                                                                                                                                                                          
+walleye:/data/local/tmp # cd /sbin/                                                                                                                                                                                                                          
+walleye:/sbin # ls
+supersu
+walleye:/sbin # 
+
+```
+然后就可以使用了
+
+
+
+
+## 最后
+
+无感知的root工具，你可以将su文件的名字随意更改，然后配合上一篇的rxposed完成全局hook工作。
+
+
+
